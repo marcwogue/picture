@@ -93,6 +93,21 @@ class MediaService {
     }
   }
 
+  /// Get media from a specific album with range (start/end)
+  Future<List<MediaItem>> getMediaFromAlbumRange(
+    AssetPathEntity album, {
+    required int start,
+    required int end,
+  }) async {
+    try {
+      final assets = await album.getAssetListRange(start: start, end: end);
+      return assets.map((asset) => MediaItem.fromAsset(asset)).toList();
+    } catch (e) {
+      debugPrint('Error getting media from album range: $e');
+      return [];
+    }
+  }
+
   /// Get all images
   Future<List<MediaItem>> getAllImages({
     int page = 0,

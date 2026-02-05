@@ -71,11 +71,46 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _openAlbum(AssetPathEntity album) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => GalleryPage(album: album)),
+  void _openAlbum(AssetPathEntity album) async {
+    // Afficher un indicateur de chargement
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
     );
+
+    try {
+      // Récupérer le nombre total de médias dans l'album
+      final totalCount = await album.assetCountAsync;
+      // Précharger les médias de l'album (max 500 initialement)
+      final media = await _mediaService.getMediaFromAlbum(album, pageSize: 500);
+      final albumName = album.name.isEmpty ? 'Album' : album.name;
+
+      // Fermer l'indicateur de chargement
+      if (mounted) Navigator.pop(context);
+
+      // Naviguer vers GalleryPage avec les médias préchargés et le total
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GalleryPage(
+              album:
+                  album, // Passer l'album pour le chargement de plus de médias
+              initialMedia: media,
+              albumName: albumName,
+              totalMediaCount: totalCount,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Fermer l'indicateur de chargement en cas d'erreur
+      if (mounted) Navigator.pop(context);
+      debugPrint('Error loading album media: $e');
+    }
   }
 
   @override

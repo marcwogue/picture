@@ -13,8 +13,18 @@ import 'video_player_page.dart';
 class GalleryPage extends StatefulWidget {
   final AssetPathEntity? album;
   final MediaType? filterType;
+  final List<MediaItem>? initialMedia; // Médias préchargés passés directement
+  final String? albumName; // Nom de l'album pour l'affichage
+  final int? totalMediaCount; // Nombre total de médias dans l'album
 
-  const GalleryPage({super.key, this.album, this.filterType});
+  const GalleryPage({
+    super.key,
+    this.album,
+    this.filterType,
+    this.initialMedia,
+    this.albumName,
+    this.totalMediaCount,
+  });
 
   @override
   State<GalleryPage> createState() => _GalleryPageState();
@@ -26,6 +36,10 @@ class _GalleryPageState extends State<GalleryPage> {
   bool _isLoading = true;
   bool _isSelectionMode = false;
   Set<String> _selectedIds = {};
+  bool _isLoadingMore = false;
+  int _totalMediaCount = 0;
+  static const int _initialPageSize = 500;
+  static const int _loadMoreSize = 100;
 
   @override
   void initState() {
@@ -34,6 +48,17 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   Future<void> _loadMedia() async {
+    // Si des médias préchargés sont fournis, les utiliser directement
+    if (widget.initialMedia != null && widget.initialMedia!.isNotEmpty) {
+      setState(() {
+        _media = List.from(widget.initialMedia!);
+        _totalMediaCount =
+            widget.totalMediaCount ?? widget.initialMedia!.length;
+        _isLoading = false;
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -41,16 +66,20 @@ class _GalleryPageState extends State<GalleryPage> {
     try {
       List<MediaItem> media;
       if (widget.album != null) {
+        _totalMediaCount = await widget.album!.assetCountAsync;
         media = await _mediaService.getMediaFromAlbum(
           widget.album!,
-          pageSize: 500,
+          pageSize: _initialPageSize,
         );
       } else if (widget.filterType == MediaType.image) {
         media = await _mediaService.getAllImages(pageSize: 100);
+        _totalMediaCount = media.length;
       } else if (widget.filterType == MediaType.video) {
         media = await _mediaService.getAllVideos(pageSize: 100);
+        _totalMediaCount = media.length;
       } else {
         media = await _mediaService.getRecentMedia(count: 100);
+        _totalMediaCount = media.length;
       }
 
       setState(() {
@@ -58,11 +87,45 @@ class _GalleryPageState extends State<GalleryPage> {
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('Error loading media: $e');
       setState(() {
         _isLoading = false;
       });
     }
   }
+
+  /// Charge plus de médias (pagination)
+  Future<void> _loadMoreMedia() async {
+    if (_isLoadingMore || !_hasMoreMedia) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      if (widget.album != null) {
+        final currentCount = _media.length;
+        final moreMedia = await _mediaService.getMediaFromAlbumRange(
+          widget.album!,
+          start: currentCount,
+          end: currentCount + _loadMoreSize,
+        );
+
+        setState(() {
+          _media.addAll(moreMedia);
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading more media: $e');
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  /// Vérifie s'il y a plus de médias à charger
+  bool get _hasMoreMedia => _media.length < _totalMediaCount;
 
   void _toggleSelection(MediaItem media) {
     setState(() {
@@ -158,6 +221,10 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   String get _title {
+    // Utiliser le nom d'album passé en paramètre si disponible
+    if (widget.albumName != null && widget.albumName!.isNotEmpty) {
+      return widget.albumName!;
+    }
     if (widget.album != null) {
       return widget.album!.name.isEmpty ? 'Album' : widget.album!.name;
     }
@@ -268,6 +335,10 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   Widget _buildGrid() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // +1 pour le bouton "Charger plus" si nécessaire
+    final itemCount = _hasMoreMedia ? _media.length + 1 : _media.length;
+
     return RefreshIndicator(
       onRefresh: _loadMedia,
       color: AppColors.primary,
@@ -278,8 +349,13 @@ class _GalleryPageState extends State<GalleryPage> {
           mainAxisSpacing: AppConstants.gridSpacing,
           crossAxisSpacing: AppConstants.gridSpacing,
         ),
-        itemCount: _media.length,
+        itemCount: itemCount,
         itemBuilder: (context, index) {
+          // Dernier élément = bouton "Charger plus"
+          if (_hasMoreMedia && index == _media.length) {
+            return _buildLoadMoreButton(isDark);
+          }
+
           final media = _media[index];
           return MediaGridItem(
             media: media,
@@ -288,6 +364,70 @@ class _GalleryPageState extends State<GalleryPage> {
             onLongPress: () => _enableSelectionMode(media),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildLoadMoreButton(bool isDark) {
+    final remaining = _totalMediaCount - _media.length;
+
+    return GestureDetector(
+      onTap: _isLoadingMore ? null : _loadMoreMedia,
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark
+              ? AppColors.darkSurfaceLight
+              : AppColors.lightSurfaceLight,
+          borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
+          border: Border.all(
+            color: AppColors.primary.withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+        child: _isLoadingMore
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                  strokeWidth: 2,
+                ),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      color: AppColors.primary,
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '+$remaining',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    'Voir plus',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
