@@ -75,12 +75,19 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final totalCount = await album.assetCountAsync;
+      debugPrint('DEBUG: Album "${album.name}" has $totalCount assets');
+
       final media = await _mediaService.getMediaFromAlbum(album, pageSize: 500);
+      debugPrint('DEBUG: Loaded ${media.length} media items from album');
+
       final albumName = album.name.isEmpty ? 'Album' : album.name;
 
       if (mounted) Navigator.pop(context);
 
       if (mounted) {
+        debugPrint(
+          'DEBUG: Navigating to GalleryPage with ${media.length} items, totalCount: $totalCount',
+        );
         Navigator.push(
           context,
           MaterialPageRoute(

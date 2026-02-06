@@ -34,8 +34,13 @@ class GroupedMediaList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    debugPrint(
+      'DEBUG GroupedMediaList: build called with ${media.length} media items',
+    );
     final groups = groupMediaByMonth(media);
+    debugPrint('DEBUG GroupedMediaList: Created ${groups.length} groups');
     final groupKeys = groups.keys.toList();
+    debugPrint('DEBUG GroupedMediaList: Group keys: $groupKeys');
 
     return RefreshIndicator(
       onRefresh: () async => onRefresh(),

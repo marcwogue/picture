@@ -53,13 +53,29 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   Future<void> _loadMedia() async {
+    debugPrint('DEBUG GalleryPage: _loadMedia called');
+    debugPrint(
+      'DEBUG GalleryPage: initialMedia is ${widget.initialMedia == null ? "null" : "not null"}',
+    );
+    if (widget.initialMedia != null) {
+      debugPrint(
+        'DEBUG GalleryPage: initialMedia has ${widget.initialMedia!.length} items',
+      );
+    }
+
     if (widget.initialMedia != null && widget.initialMedia!.isNotEmpty) {
+      debugPrint(
+        'DEBUG GalleryPage: Using initialMedia with ${widget.initialMedia!.length} items',
+      );
       setState(() {
         _media = List.from(widget.initialMedia!);
         _totalMediaCount =
             widget.totalMediaCount ?? widget.initialMedia!.length;
         _isLoading = false;
       });
+      debugPrint(
+        'DEBUG GalleryPage: After setState, _media has ${_media.length} items, _isLoading = $_isLoading',
+      );
       return;
     }
 
@@ -69,9 +85,15 @@ class _GalleryPageState extends State<GalleryPage> {
       List<MediaItem> media;
       if (widget.album != null) {
         _totalMediaCount = await widget.album!.assetCountAsync;
+        debugPrint(
+          'DEBUG GalleryPage: Loading from album, totalCount = $_totalMediaCount',
+        );
         media = await _mediaService.getMediaFromAlbum(
           widget.album!,
           pageSize: _initialPageSize,
+        );
+        debugPrint(
+          'DEBUG GalleryPage: Loaded ${media.length} media from album',
         );
       } else if (widget.filterType == MediaType.image) {
         media = await _mediaService.getAllImages(pageSize: 100);
@@ -88,6 +110,7 @@ class _GalleryPageState extends State<GalleryPage> {
         _media = media;
         _isLoading = false;
       });
+      debugPrint('DEBUG GalleryPage: Final _media has ${_media.length} items');
     } catch (e) {
       debugPrint('Error loading media: $e');
       setState(() => _isLoading = false);
@@ -299,17 +322,28 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   Widget _buildBody() {
+    debugPrint(
+      'DEBUG GalleryPage _buildBody: _isLoading=$_isLoading, _media.length=${_media.length}',
+    );
+
     if (_isLoading) {
+      debugPrint('DEBUG GalleryPage _buildBody: Showing LoadingIndicator');
       return const LoadingIndicator();
     }
 
     if (_media.isEmpty) {
+      debugPrint(
+        'DEBUG GalleryPage _buildBody: Showing EmptyState (media is empty)',
+      );
       return const EmptyState(
         icon: Icons.photo_library_outlined,
         message: 'Aucun fichier trouvé',
       );
     }
 
+    debugPrint(
+      'DEBUG GalleryPage _buildBody: Showing media grid with ${_media.length} items',
+    );
     return Column(
       children: [
         StatisticsBanner(

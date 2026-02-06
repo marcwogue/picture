@@ -85,8 +85,20 @@ class MediaService {
     int pageSize = 50,
   }) async {
     try {
+      debugPrint(
+        'DEBUG MediaService: Getting media from album "${album.name}", page: $page, pageSize: $pageSize',
+      );
       final assets = await album.getAssetListPaged(page: page, size: pageSize);
-      return assets.map((asset) => MediaItem.fromAsset(asset)).toList();
+      debugPrint(
+        'DEBUG MediaService: Got ${assets.length} assets from getAssetListPaged',
+      );
+      final mediaItems = assets
+          .map((asset) => MediaItem.fromAsset(asset))
+          .toList();
+      debugPrint(
+        'DEBUG MediaService: Converted to ${mediaItems.length} MediaItem objects',
+      );
+      return mediaItems;
     } catch (e) {
       debugPrint('Error getting media from album: $e');
       return [];
