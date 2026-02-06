@@ -42,19 +42,19 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: AppColors.darkBackground,
+      scaffoldBackgroundColor: const Color.fromARGB(255, 31, 31, 31),
 
       // Color scheme
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primary,
         secondary: AppColors.primaryLight,
-        surface: AppColors.darkSurface,
+        surface: Color.fromARGB(255, 44, 44, 44),
         error: AppColors.error,
       ),
 
       // AppBar theme
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color.fromARGB(0, 27, 27, 27),
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(

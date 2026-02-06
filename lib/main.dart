@@ -5,7 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme.dart';
 import 'core/theme_provider.dart';
 import 'pages/splash_page.dart';
-import 'pages/home_page.dart';
+import 'pages/home/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
