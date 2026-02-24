@@ -253,6 +253,7 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   @override
+  
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
