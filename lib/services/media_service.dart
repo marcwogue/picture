@@ -34,14 +34,19 @@ class MediaService {
   /// Check if we have permission
   bool get hasPermission => _hasPermission;
 
+  /// Ensure we have permission, request if not
+  Future<bool> _ensurePermission() async {
+    if (!_hasPermission) {
+      _hasPermission = await requestPermission();
+    }
+    return _hasPermission;
+  }
+
   /// Load all albums
   Future<List<AppAlbum>> loadAlbums({
     RequestType type = RequestType.common,
   }) async {
-    if (!_hasPermission) {
-      final granted = await requestPermission();
-      if (!granted) return [];
-    }
+    if (!await _ensurePermission()) return [];
 
     try {
       if (Platform.isLinux || Platform.isWindows) {
@@ -104,10 +109,7 @@ class MediaService {
 
   /// Get recent media items
   Future<List<MediaItem>> getRecentMedia({int count = 20}) async {
-    if (!_hasPermission) {
-      final granted = await requestPermission();
-      if (!granted) return [];
-    }
+    if (!await _ensurePermission()) return [];
 
     try {
       final albums = await loadAlbums();
@@ -127,42 +129,61 @@ class MediaService {
     int page = 0,
     int pageSize = 50,
   }) async {
+    if (!await _ensurePermission()) return [];
+
     try {
       if (album.isLocal) {
         return await _getMediaFromLocalDirectory(album.localPath!);
       }
 
       final totalCount = await album.assetPath!.assetCountAsync;
+      final start = page * pageSize;
+      final end = (start + pageSize) > totalCount
+          ? totalCount
+          : (start + pageSize);
+
       debugPrint(
-        'DEBUG MediaService: Getting media from album "${album.name}", page: $page, pageSize: $pageSize, totalCount: $totalCount',
+        'DEBUG MediaService: Getting media from "${album.name}", range: $start - $end, totalCount: $totalCount',
       );
 
-      var assets = await album.assetPath!.getAssetListPaged(
-        page: page,
-        size: pageSize,
-      );
-      debugPrint(
-        'DEBUG MediaService: Got ${assets.length} assets from getAssetListPaged',
+      var assets = await album.assetPath!.getAssetListRange(
+        start: start,
+        end: end,
       );
 
       // Robustness fallback: if we got 0 assets but totalCount > 0 and we are on page 0
       if (assets.isEmpty && totalCount > 0 && page == 0) {
         debugPrint(
-          'DEBUG MediaService: Fallback triggered using getAssetListRange',
+          'DEBUG MediaService: Fallback triggered using chunked retrieval',
         );
-        assets = await album.assetPath!.getAssetListRange(
-          start: 0,
-          end: totalCount < pageSize ? totalCount : pageSize,
-        );
+        final int chunk = 20; // Try smaller chunks
+        for (
+          int s = 0;
+          s < totalCount && assets.length < pageSize;
+          s += chunk
+        ) {
+          final e = (s + chunk) > totalCount ? totalCount : (s + chunk);
+          final batch = await album.assetPath!.getAssetListRange(
+            start: s,
+            end: e,
+          );
+          if (batch.isNotEmpty) {
+            assets.addAll(batch);
+            if (assets.length >= pageSize) break;
+          }
+        }
         debugPrint('DEBUG MediaService: Fallback got ${assets.length} assets');
+      }
+
+      if (assets.isEmpty && totalCount > 0) {
+        debugPrint(
+          'WARNING MediaService: Failed to retrieve assets for album "${album.name}" (${album.id}) although totalCount is $totalCount',
+        );
       }
 
       final mediaItems = assets
           .map((asset) => MediaItem.fromAsset(asset))
           .toList();
-      debugPrint(
-        'DEBUG MediaService: Converted to ${mediaItems.length} MediaItem objects',
-      );
       return mediaItems;
     } catch (e) {
       debugPrint('Error getting media from album: $e');
@@ -199,6 +220,7 @@ class MediaService {
     required int start,
     required int end,
   }) async {
+    if (!await _ensurePermission()) return [];
     try {
       if (album.isLocal) {
         final all = await _getMediaFromLocalDirectory(album.localPath!);
@@ -221,10 +243,7 @@ class MediaService {
     int page = 0,
     int pageSize = 50,
   }) async {
-    if (!_hasPermission) {
-      final granted = await requestPermission();
-      if (!granted) return [];
-    }
+    if (!await _ensurePermission()) return [];
 
     if (Platform.isLinux || Platform.isWindows) {
       final albums = await loadAlbums();
@@ -256,10 +275,7 @@ class MediaService {
     int page = 0,
     int pageSize = 50,
   }) async {
-    if (!_hasPermission) {
-      final granted = await requestPermission();
-      if (!granted) return [];
-    }
+    if (!await _ensurePermission()) return [];
 
     if (Platform.isLinux || Platform.isWindows) {
       final albums = await loadAlbums();
