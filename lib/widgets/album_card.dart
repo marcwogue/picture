@@ -1,12 +1,14 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 import '../core/theme.dart';
 import '../core/constants.dart';
+import '../models/album_model.dart';
 
 /// Card widget for displaying an album
 class AlbumCard extends StatelessWidget {
-  final AssetPathEntity album;
+  final AppAlbum album;
   final VoidCallback onTap;
 
   const AlbumCard({super.key, required this.album, required this.onTap});
@@ -103,7 +105,21 @@ class AlbumCard extends StatelessWidget {
 
   Future<Uint8List?> _getAlbumThumbnail() async {
     try {
-      final assets = await album.getAssetListRange(start: 0, end: 1);
+      if (album.isLocal) {
+        final dir = Directory(album.localPath!);
+        final files = dir.listSync();
+        for (var file in files) {
+          if (file is File) {
+            final ext = file.path.toLowerCase().split('.').last;
+            if (['jpg', 'jpeg', 'png', 'webp'].contains(ext)) {
+              return await file.readAsBytes();
+            }
+          }
+        }
+        return null;
+      }
+
+      final assets = await album.assetPath!.getAssetListRange(start: 0, end: 1);
       if (assets.isNotEmpty) {
         return await assets.first.thumbnailDataWithSize(
           const ThumbnailSize(300, 300),

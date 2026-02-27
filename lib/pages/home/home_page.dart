@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:photo_manager/photo_manager.dart';
 import '../../core/theme.dart';
 import '../../core/theme_provider.dart';
 import '../../core/constants.dart';
 import '../../services/media_service.dart';
+import '../../models/album_model.dart';
 import '../../widgets/album_card.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -22,7 +22,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final MediaService _mediaService = MediaService();
-  List<AssetPathEntity> _albums = [];
+  List<AppAlbum> _albums = [];
   bool _isLoading = true;
   bool _hasPermission = false;
 
@@ -48,7 +48,7 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final albums = await _mediaService.loadAlbums();
-      final nonEmptyAlbums = <AssetPathEntity>[];
+      final nonEmptyAlbums = <AppAlbum>[];
 
       for (final album in albums) {
         final count = await album.assetCountAsync;
@@ -64,46 +64,17 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _openAlbum(AssetPathEntity album) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+  void _openAlbum(AppAlbum album) {
+    final albumName = album.name.isEmpty ? 'Album' : album.name;
+
+    debugPrint('DEBUG: Navigating to GalleryPage for album: "$albumName"');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GalleryPage(album: album, albumName: albumName),
       ),
     );
-
-    try {
-      final totalCount = await album.assetCountAsync;
-      debugPrint('DEBUG: Album "${album.name}" has $totalCount assets');
-
-      final media = await _mediaService.getMediaFromAlbum(album, pageSize: 500);
-      debugPrint('DEBUG: Loaded ${media.length} media items from album');
-
-      final albumName = album.name.isEmpty ? 'Album' : album.name;
-
-      if (mounted) Navigator.pop(context);
-
-      if (mounted) {
-        debugPrint(
-          'DEBUG: Navigating to GalleryPage with ${media.length} items, totalCount: $totalCount',
-        );
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => GalleryPage(
-              album: album,
-              initialMedia: media,
-              albumName: albumName,
-              totalMediaCount: totalCount,
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) Navigator.pop(context);
-      debugPrint('Error loading album media: $e');
-    }
   }
 
   @override

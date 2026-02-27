@@ -50,6 +50,9 @@ dependencies:
   # Date formatting
   intl: ^0.20.2
 
+  # Path provider for Linux support
+  path_provider: ^2.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

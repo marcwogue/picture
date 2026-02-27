@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:photo_manager/photo_manager.dart';
+import 'package:picture/models/album_model.dart';
 import '../../core/theme.dart';
 import '../../models/media_item.dart';
 import '../../services/media_service.dart';
@@ -15,7 +15,7 @@ import 'utils/date_grouping.dart';
 
 /// Gallery page showing all media from an album in a grid
 class GalleryPage extends StatefulWidget {
-  final AssetPathEntity? album;
+  final AppAlbum? album;
   final MediaType? filterType;
   final List<MediaItem>? initialMedia;
   final String? albumName;

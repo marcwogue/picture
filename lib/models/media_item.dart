@@ -8,7 +8,8 @@ enum MediaType { image, video }
 /// Model class representing a media item (image or video)
 class MediaItem {
   final String id;
-  final AssetEntity asset;
+  final AssetEntity? asset; // Optional for desktop platforms
+  final String? directPath; // Used on Desktop
   final MediaType type;
   final DateTime createdAt;
   final int? duration; // Duration in seconds for videos
@@ -17,12 +18,13 @@ class MediaItem {
 
   MediaItem({
     required this.id,
-    required this.asset,
+    this.asset,
+    this.directPath,
     required this.type,
     required this.createdAt,
     this.duration,
-    required this.width,
-    required this.height,
+    this.width = 0,
+    this.height = 0,
   });
 
   /// Create MediaItem from AssetEntity
@@ -38,22 +40,51 @@ class MediaItem {
     );
   }
 
-  /// Get thumbnail as bytes
+  /// Create MediaItem from File path (Desktop)
+  factory MediaItem.fromFile(File file, MediaType type) {
+    final stat = file.statSync();
+    return MediaItem(
+      id: file.path,
+      directPath: file.path,
+      asset: null,
+      type: type,
+      createdAt: stat.changed,
+      width: 0, // We could use a library to get dimensions, but for now 0
+      height: 0,
+    );
+  }
+
   Future<Uint8List?> getThumbnail({int width = 300, int height = 300}) async {
-    try {
-      return await asset.thumbnailDataWithSize(
-        ThumbnailSize(width, height),
-        quality: 80,
-      );
-    } catch (e) {
-      debugPrint('Error getting thumbnail: $e');
-      return null;
+    if (asset != null) {
+      try {
+        return await asset!.thumbnailDataWithSize(
+          ThumbnailSize(width, height),
+          quality: 80,
+        );
+      } catch (e) {
+        debugPrint('Error getting thumbnail: $e');
+        return null;
+      }
+    } else if (directPath != null) {
+      // For desktop, we could use a library to generate thumbnails
+      // or just return the file bytes if it's an image.
+      // For now, return null or implement a basic version.
+      if (type == MediaType.image) {
+        return await File(directPath!).readAsBytes();
+      }
     }
+    return null;
   }
 
   /// Get the full file
   Future<File?> getFile() async {
-    return await asset.file;
+    if (asset != null) {
+      return await asset!.file;
+    }
+    if (directPath != null) {
+      return File(directPath!);
+    }
+    return null;
   }
 
   /// Get file path
