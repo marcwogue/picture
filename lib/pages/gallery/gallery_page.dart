@@ -35,24 +35,36 @@ class GalleryPage extends StatefulWidget {
 }
 
 class _GalleryPageState extends State<GalleryPage> {
+  static const int _initialPageSize = AppConstants.mediaPageSize;
+  static const int _loadMoreSize = 30;
+
   final MediaService _mediaService = MediaService();
   List<MediaItem> _media = [];
   bool _isLoading = true;
-  bool _isSelectionMode = false;
-  Set<String> _selectedIds = {};
   bool _isLoadingMore = false;
   int _totalMediaCount = 0;
-
-  static const int _initialPageSize = 500;
-  static const int _loadMoreSize = 100;
+  bool _selectionMode = false;
+  final Set<MediaItem> _selectedItems = {};
 
   @override
   void initState() {
     super.initState();
+    debugPrint(
+      'DEBUG GalleryPage: initState for album "${widget.albumName ?? 'Unknown'}" (ID: ${widget.album?.id ?? 'null'})',
+    );
     _loadMedia();
   }
 
   Future<void> _loadMedia() async {
+    debugPrint('DEBUG GalleryPage: _loadMedia starting');
+    debugPrint(
+      'DEBUG GalleryPage: widget.album is ${widget.album == null ? "null" : "present"}',
+    );
+    if (widget.album != null) {
+      debugPrint(
+        'DEBUG GalleryPage: album name: "${widget.album!.name}", isLocal: ${widget.album!.isLocal}',
+      );
+    }
     debugPrint('DEBUG GalleryPage: _loadMedia called');
     debugPrint(
       'DEBUG GalleryPage: initialMedia is ${widget.initialMedia == null ? "null" : "not null"}',

@@ -193,3 +193,12 @@ Annexe : exemples de patch rapides (diffs suggérés)
 - Remplacer `_initialPageSize = 500` par `AppConstants.mediaPageSize`.
 
 Fin du document.
+
+
+
+
+
+
+
+
+ copilot --resume=0a5d3e3e-b257-47a5-a4c8-b1f8cd28e99b
