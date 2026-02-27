@@ -107,13 +107,18 @@ class AlbumCard extends StatelessWidget {
     try {
       if (album.isLocal) {
         final dir = Directory(album.localPath!);
-        final files = dir.listSync();
+        if (!await dir.exists()) return null;
+
+        final files = dir.listSync().whereType<File>().toList();
+        // Sort by modified date descending
+        files.sort(
+          (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
+        );
+
         for (var file in files) {
-          if (file is File) {
-            final ext = file.path.toLowerCase().split('.').last;
-            if (['jpg', 'jpeg', 'png', 'webp'].contains(ext)) {
-              return await file.readAsBytes();
-            }
+          final ext = file.path.toLowerCase().split('.').last;
+          if (['jpg', 'jpeg', 'png', 'webp'].contains(ext)) {
+            return await file.readAsBytes();
           }
         }
         return null;

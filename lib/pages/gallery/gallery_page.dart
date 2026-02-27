@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:picture/models/album_model.dart';
 import '../../core/theme.dart';
+import '../../core/constants.dart';
 import '../../models/media_item.dart';
+import '../../models/album_model.dart';
 import '../../services/media_service.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/loading_indicator.dart';
@@ -43,8 +44,8 @@ class _GalleryPageState extends State<GalleryPage> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   int _totalMediaCount = 0;
-  bool _selectionMode = false;
-  final Set<MediaItem> _selectedItems = {};
+  bool _isSelectionMode = false;
+  Set<String> _selectedIds = {};
 
   @override
   void initState() {
