@@ -79,19 +79,26 @@ class _GalleryPageState extends State<GalleryPage> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _media = []; // Clear current media if reloading
+    });
 
     try {
-      List<MediaItem> media;
+      List<MediaItem> media = [];
       if (widget.album != null) {
         _totalMediaCount = await widget.album!.assetCountAsync;
         debugPrint(
-          'DEBUG GalleryPage: Loading from album, totalCount = $_totalMediaCount',
+          'DEBUG GalleryPage: Loading from album "${widget.album!.name}", totalCount = $_totalMediaCount',
         );
-        media = await _mediaService.getMediaFromAlbum(
-          widget.album!,
-          pageSize: _initialPageSize,
-        );
+
+        if (_totalMediaCount > 0) {
+          media = await _mediaService.getMediaFromAlbum(
+            widget.album!,
+            pageSize: _initialPageSize,
+          );
+        }
+
         debugPrint(
           'DEBUG GalleryPage: Loaded ${media.length} media from album',
         );
@@ -106,14 +113,18 @@ class _GalleryPageState extends State<GalleryPage> {
         _totalMediaCount = media.length;
       }
 
-      setState(() {
-        _media = media;
-        _isLoading = false;
-      });
-      debugPrint('DEBUG GalleryPage: Final _media has ${_media.length} items');
+      if (mounted) {
+        setState(() {
+          _media = media;
+          _isLoading = false;
+        });
+        debugPrint(
+          'DEBUG GalleryPage: Final _media has ${_media.length} items, _isLoading = false',
+        );
+      }
     } catch (e) {
       debugPrint('Error loading media: $e');
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -253,7 +264,6 @@ class _GalleryPageState extends State<GalleryPage> {
   }
 
   @override
-  
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

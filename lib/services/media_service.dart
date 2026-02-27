@@ -85,13 +85,28 @@ class MediaService {
     int pageSize = 50,
   }) async {
     try {
+      final totalCount = await album.assetCountAsync;
       debugPrint(
-        'DEBUG MediaService: Getting media from album "${album.name}", page: $page, pageSize: $pageSize',
+        'DEBUG MediaService: Getting media from album "${album.name}", page: $page, pageSize: $pageSize, totalCount: $totalCount',
       );
-      final assets = await album.getAssetListPaged(page: page, size: pageSize);
+
+      var assets = await album.getAssetListPaged(page: page, size: pageSize);
       debugPrint(
         'DEBUG MediaService: Got ${assets.length} assets from getAssetListPaged',
       );
+
+      // Robustness fallback: if we got 0 assets but totalCount > 0 and we are on page 0
+      if (assets.isEmpty && totalCount > 0 && page == 0) {
+        debugPrint(
+          'DEBUG MediaService: Fallback triggered using getAssetListRange',
+        );
+        assets = await album.getAssetListRange(
+          start: 0,
+          end: totalCount < pageSize ? totalCount : pageSize,
+        );
+        debugPrint('DEBUG MediaService: Fallback got ${assets.length} assets');
+      }
+
       final mediaItems = assets
           .map((asset) => MediaItem.fromAsset(asset))
           .toList();
